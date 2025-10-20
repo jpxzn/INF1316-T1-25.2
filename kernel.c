@@ -182,6 +182,17 @@ int main()
                     procs[i].operacao = operacao;
                     procs[i].dispositivo = dispositivo;
 
+                    if(pc >= 5)
+                        procs[i].estado = FINISHED;
+
+                    if(procs[i].estado == FINISHED)
+                    {
+                        procs[i].operacao = '-';
+                        procs[i].dispositivo = 0;
+                        procs[i].acessos_D1 = 0;
+                        procs[i].acessos_D2 = 0;
+                    }
+
                     if(dispositivo == 1)
                     {
                         FilaD1[tamFilaD1++] = pid;
@@ -195,6 +206,8 @@ int main()
 
                     if(procs[i].estado == BLOCKED)
                         kill(procs[i].pid, SIGSTOP);
+
+                    break;
                 }
             }
 
