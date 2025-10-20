@@ -1,0 +1,115 @@
+RELATÓRIO – TRABALHO 1 – KERNELSIM-SIMULATOR
+
+Breno de Andrade Soares (2320363)
+Joao Pedro Zaidman dos S Goncalves (2320464)
+
+
+1. INTRODUÇÃO
+
+O trabalho teve como objetivo implementar um simulador de núcleo de
+sistema operacional (KernelSim) em C, utilizando fork/exec, sinais UNIX
+e comunicação entre processos via FIFO.
+
+O sistema é formado por:
+
+* KernelSim: núcleo que gerencia cinco processos de aplicação e o
+controlador de interrupções.
+* InterControllerSim: processo que gera interrupções de tempo (IRQ0)
+e término de E/S (IRQ1, IRQ2).
+* Aplicações (A1–A5): processos de usuário que executam e eventualmente
+solicitam operações de E/S.
+
+O simulador reproduz a alternância de processos com escalonamento 
+Round-Robin e controle de bloqueio/desbloqueio em dispositivos D1 e D2.
+
+
+2. DESENVOLVIMENTO
+
+O projeto foi dividido em quatro componentes principais:
+
+- kernel.c – implementa o núcleo do sistema.
+- interController.c – implementa o gerador de interrupções.
+- app.c – representa o comportamento das aplicações.
+- Arquivos de cabeçalho (Procinfo.h e State.h) – definem
+as estruturas e tipos compartilhados.
+
+A seguir são descritos os arquivos e suas principais funções.
+
+
+- kernel.c – Núcleo do sistema
+
+Cria os cinco processos de aplicação, inicia o controlador de interrupções
+e controla o estado dos processos (READY, RUNNING, BLOCKED e FINISHED). 
+Utiliza `SIGSTOP` e `SIGCONT` para pausar e retomar execuções.
+Gerencia as filas de bloqueio (D1 e D2) e realiza o escalonamento 
+Round-Robin literal.
+
+Principais funções:
+
+* main(): inicializa FIFOs, cria processos, inicia o controlador
+e executa o loop principal.
+* escalona_proximo(): realiza o chaveamento entre processos.
+* desbloqueia_processo(): controla as 
+filas de D1 e D2.
+* proximo_ready: verifica o próximo processo pronto. 
+
+
+- interController.c – Controlador de interrupções
+
+O arquivo interController.c implementa o processo InterControllerSim, 
+responsável por gerar periodicamente as interrupções IRQ0, IRQ1 e IRQ2, 
+simulando o comportamento de um controlador de hardware.
+
+Ele envia as interrupções ao KernelSim através do FIFO /tmp/fifo_irq.
+
+Principais características:
+
+* main(): inicia o controlador, abre o FIFO de IRQs e entra em loop a 
+cada 500 ms enviando interrupções ao Kernel.
+* usleep(500 ms): simula o intervalo de tempo de um time-slice (500 ms).
+* Probabilidades: gera IRQ1 (D1) com probabilidade 0.10 e IRQ2 (D2) 
+com probabilidade 0.05, conforme enunciado.
+
+
+- app.c – Processos de aplicação
+
+Simula a execução de um processo de usuário. Cada aplicação executa até
+'MAX' iterações, salvando e restaurando o contador de programa (PC). Com
+pequena probabilidade (~15%), realiza uma syscall para D1 ou D2 e se
+bloqueia até ser reativada.
+
+Possui um main(), contém um loop principal do processo. Incrementa o PC,
+com probabilidade de 15%, faz uma syscall para D1 ou D2, escolhendo 
+aleatoriamente a operação (R, W ou X).
+
+
+- Arquivos de cabeçalho
+
+* Procinfo.h: define a estrutura ProcInfo, armazenada pelo Kernel para
+controle de estado e contadores.
+* State.h: define o enum State com os estados READY, BLOCKED, RUNNING
+e FINISHED, a função state2string() e string2state().
+
+
+3. CONCLUSÃO
+
+Compilação e execução:
+
+make run
+
+Durante os testes, observou-se que o funcionamento está de acordo com
+o esperado:
+
+* Processos alternam execução a cada interrupção de tempo (IRQ0), conforme
+Round-Robin literal.
+* Syscalls bloqueiam os processos, que são inseridos nas filas corretas
+(D1/D2).
+* Interrupções IRQ1 e IRQ2 desbloqueiam os processos na ordem FIFO.
+* Os estados e contadores são atualizados e exibidos corretamente com
+Ctrl+C.
+* O sistema encerra automaticamente ao término de todos os processos,
+finalizando o controlador e limpando os arquivos temporários.
+
+Conclui-se que o simulador KernelSim-Simulator cumpre todos os requisitos:
+escalonamento por tempo, controle de syscalls, simulação de interrupções e
+visualização do estado dos processos.
